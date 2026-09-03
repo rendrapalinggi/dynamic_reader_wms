@@ -1,0 +1,28 @@
+# Java / Maven
+.m2/
+backend/**/target/
+backend/**/.mvn/wrapper/maven-wrapper.jar
+backend/**/.mvn/wrapper/maven-wrapper.properties
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node / React
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.vite/
+
+# Backend dependencies
+backend/**/vendor/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Database
+*.sqlite
+*.db
