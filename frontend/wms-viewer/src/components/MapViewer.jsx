@@ -9,12 +9,11 @@ import Overlay from 'ol/Overlay';
 import { transform } from 'ol/proj';
 import { fetchFeatureInfo } from '../services/WmsService';
 
-export default function MapViewer({ layers, onFeatureSelect }) {
+export default function MapViewer({ layers, onFeatureSelect, onFeatureMessage }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markerRef = useRef(null);
   const markerOverlay = useRef(null);
-  const [featurePopup, setFeaturePopup] = useState(null);
   const [hasClickedPoint, setHasClickedPoint] = useState(false);
 
   useEffect(() => {
@@ -74,12 +73,9 @@ export default function MapViewer({ layers, onFeatureSelect }) {
         .filter((mapLayer) => mapLayer.get('wmsLayer'));
       if (activeLayers.length === 0) {
         onFeatureSelect(null);
-        setFeaturePopup(null);
+        onFeatureMessage('Belum ada layer aktif untuk dibaca. Aktifkan layer terlebih dahulu.');
         return;
       }
-
-      // Beri umpan balik langsung saat pengguna memilih titik lain pada peta.
-      setFeaturePopup(null);
 
       const view = mapInstance.current.getView();
       const resolution = view.getResolution();
@@ -149,14 +145,10 @@ export default function MapViewer({ layers, onFeatureSelect }) {
           properties: feature.properties || {}
         })));
         onFeatureSelect(features);
-        setFeaturePopup({ pixel: event.pixel, results });
+        onFeatureMessage(null);
       } else {
         onFeatureSelect(null);
-        setFeaturePopup({
-          pixel: event.pixel,
-          results: [],
-          message: 'Tidak ada objek yang dapat dibaca pada titik ini. Perbesar peta lalu klik tepat pada objek layer.'
-        });
+        onFeatureMessage('Tidak ada data pada lokasi yang dipilih. Silakan klik tepat pada area layer yang tampil di peta.');
       }
     };
 
@@ -168,27 +160,6 @@ export default function MapViewer({ layers, onFeatureSelect }) {
   return (
     <div ref={mapRef} className="map-canvas">
       <span ref={markerRef} className={`map-click-marker ${hasClickedPoint ? 'is-visible' : ''}`} aria-label="Titik yang dipilih" />
-      {featurePopup && (
-        <div
-          className="feature-popup"
-          style={{ left: featurePopup.pixel[0], top: featurePopup.pixel[1] }}
-        >
-          <button className="feature-popup-close" onClick={() => setFeaturePopup(null)} aria-label="Tutup informasi">x</button>
-          {featurePopup.message && <p className="feature-popup-message">{featurePopup.message}</p>}
-          {featurePopup.results.map(({ layer, data }) => (
-            <section key={layer.id} className="feature-group">
-              <span className="eyebrow">{layer.qualifiedLayerName}</span>
-              {data.features.slice(0, 10).map((feature, index) => (
-                <dl key={`${layer.id}-${index}`} className="feature-properties">
-                  {Object.entries(feature.properties || {}).map(([key, value]) => (
-                    <div key={key}><dt>{key}</dt><dd>{String(value ?? 'N/A')}</dd></div>
-                  ))}
-                </dl>
-              ))}
-            </section>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
