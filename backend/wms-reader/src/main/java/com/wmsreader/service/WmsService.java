@@ -467,8 +467,29 @@ public class WmsService {
             URI uri = new URI(url);
             String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase();
             String query = uri.getQuery() == null ? "" : uri.getQuery().toLowerCase();
-            return path.endsWith("/wms") || path.contains("service-wms") || query.contains("service=wms");
+            return path.endsWith("/wms")
+                || path.contains("service-wms")
+                || query.contains("service=wms")
+                || supportsWmsCapabilities(url);
         } catch (URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private boolean supportsWmsCapabilities(String url) {
+        try {
+            String capabilitiesUrl = appendCapabilitiesParameters(url);
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(capabilitiesUrl))
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+            return response.statusCode() == 200
+                && body != null
+                && (body.contains("<WMS_Capabilities") || body.contains("<WMT_MS_Capabilities"));
+        } catch (Exception e) {
             return false;
         }
     }

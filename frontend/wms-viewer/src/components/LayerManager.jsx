@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function LayerManager({ layers, onToggleVisibility, onDelete, onInfo, onClose, clickedFeatures, onFeatureClear }) {
+export default function LayerManager({ layers, onToggleVisibility, onDelete, onInfo, onClose, clickedFeatures, clickedFeatureMessage, onFeatureClear }) {
   const [search, setSearch] = useState('');
   const filteredLayers = layers.filter((layer) => (layer.qualifiedLayerName || '').toLowerCase().includes(search.toLowerCase()));
 
@@ -28,13 +28,14 @@ export default function LayerManager({ layers, onToggleVisibility, onDelete, onI
           ))}
         </ul>
       )}
-      {clickedFeatures?.length > 0 && (
+      {(clickedFeatures?.length > 0 || clickedFeatureMessage) && (
         <section className="clicked-feature-panel">
           <div className="clicked-feature-heading">
-            <div><span className="eyebrow">SELECTED ON MAP</span><h3>{clickedFeatures.length} feature ditemukan</h3></div>
+            <div><span className="eyebrow">SELECTED ON MAP</span><h3>{clickedFeatures?.length || 0} feature ditemukan</h3></div>
             <button className="panel-close-btn" onClick={onFeatureClear} title="Tutup informasi">x</button>
           </div>
-          {clickedFeatures.map((feature, index) => (
+          {clickedFeatureMessage && <p className="feature-message">{clickedFeatureMessage}</p>}
+          {(clickedFeatures || []).map((feature, index) => (
             <div className="clicked-feature-record" key={`${feature.layerName}-${index}`}>
               <span className="feature-layer-label">{feature.layerName}</span>
               <dl className="clicked-feature-properties">

@@ -23,6 +23,7 @@ export default function App() {
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
   const [infoLayer, setInfoLayer] = useState(null);
   const [clickedFeature, setClickedFeature] = useState(null);
+  const [featureMessage, setFeatureMessage] = useState(null);
 
   const loadLayers = async () => {
     try {
@@ -212,13 +213,22 @@ export default function App() {
               onDelete={handleDeleteLayer}
               onInfo={setInfoLayer}
               clickedFeatures={clickedFeature}
-              onFeatureClear={() => setClickedFeature(null)}
+              clickedFeatureMessage={featureMessage}
+              onFeatureClear={() => {
+                setClickedFeature(null);
+                setFeatureMessage(null);
+              }}
               onClose={() => setIsLayerPanelOpen(false)}
             />
           ) : <button className="reopen-layers-btn" onClick={() => setIsLayerPanelOpen(true)} title="Buka Layer Manager">Layers</button>}
         </aside>
         <section className="map-workspace">
-          <MapViewer key={mapKey} layers={layers} onFeatureSelect={setClickedFeature} />
+          <MapViewer
+            key={mapKey}
+            layers={layers}
+            onFeatureSelect={setClickedFeature}
+            onFeatureMessage={setFeatureMessage}
+          />
         </section>
       </main>
 
