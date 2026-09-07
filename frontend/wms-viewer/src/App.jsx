@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import WmsForm from './components/WmsForm';
 import LayerManager from './components/LayerManager';
 import MapViewer from './components/MapViewer';
+import MonitoringDashboard from './components/MonitoringDashboard';
 import { checkWms, discoverLayers, fetchLayers, updateLayerVisibility, deleteLayer, addLayer } from './services/WmsService';
 
 export default function App() {
@@ -24,6 +25,18 @@ export default function App() {
   const [infoLayer, setInfoLayer] = useState(null);
   const [clickedFeature, setClickedFeature] = useState(null);
   const [featureMessage, setFeatureMessage] = useState(null);
+  const [activeView, setActiveView] = useState('map');
+  const [savedConnections, setSavedConnections] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wms-saved-connections') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wms-saved-connections', JSON.stringify(savedConnections));
+  }, [savedConnections]);
 
   const loadLayers = async () => {
     try {
@@ -41,6 +54,37 @@ export default function App() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveConnection = () => {
+    if (!form.geoserverUrl.trim() || !form.workspace.trim()) {
+      toast.error('Isi URL GeoServer dan workspace terlebih dahulu.');
+      return;
+    }
+    const connection = {
+      id: `${form.geoserverUrl.trim()}|${form.workspace.trim()}`,
+      geoserverUrl: form.geoserverUrl.trim(),
+      workspace: form.workspace.trim()
+    };
+    setSavedConnections((current) => [connection, ...current.filter((item) => item.id !== connection.id)]);
+    toast.success('Koneksi disimpan di browser ini.');
+  };
+
+  const handleLoadConnection = (connection) => {
+    setForm((current) => ({
+      ...current,
+      geoserverUrl: connection.geoserverUrl,
+      workspace: connection.workspace,
+      layerName: ''
+    }));
+    setCheckResult(null);
+    setDiscoveredLayers([]);
+    setSelectedLayerNames([]);
+    toast.success(`Koneksi ${connection.workspace} siap digunakan.`);
+  };
+
+  const handleDeleteConnection = (connectionId) => {
+    setSavedConnections((current) => current.filter((connection) => connection.id !== connectionId));
   };
 
   const handleDiscoverLayers = async () => {
@@ -196,7 +240,7 @@ export default function App() {
             <h1>WMS Reader</h1>
           </div>
         </div>
-        <div className="view-label">Map View</div>
+        <div className="view-label">{activeView === 'map' ? 'Map View' : 'Monitoring WMS'}</div>
       </header>
 
       <main className="workspace-shell">
@@ -204,9 +248,12 @@ export default function App() {
           <div className="sidebar-heading"><span className="eyebrow">LAYER MANAGER</span><small>Active operations</small></div>
           <button className="new-connection-btn" onClick={() => setIsAddPanelOpen(true)}>+ New Connection</button>
           <nav className="sidebar-nav" aria-label="Layer tools">
-            <button className="active"><span>◇</span>Layers</button>
+            <button className={activeView === 'map' ? 'active' : ''} onClick={() => setActiveView('map')}><span>◇</span>Layers</button>
+            <button className={activeView === 'monitoring' ? 'active' : ''} onClick={() => setActiveView('monitoring')}><span>◌</span>Monitoring WMS</button>
           </nav>
-          {isLayerPanelOpen ? (
+          {activeView === 'monitoring' ? (
+            <div className="sidebar-note"><span className="eyebrow">SYSTEM HEALTH</span><p>Periksa kondisi WMS yang terdaftar dari dashboard monitoring.</p></div>
+          ) : isLayerPanelOpen ? (
             <LayerManager
               layers={layers}
               onToggleVisibility={handleToggleVisibility}
@@ -222,13 +269,15 @@ export default function App() {
             />
           ) : <button className="reopen-layers-btn" onClick={() => setIsLayerPanelOpen(true)} title="Buka Layer Manager">Layers</button>}
         </aside>
-        <section className="map-workspace">
-          <MapViewer
-            key={mapKey}
-            layers={layers}
-            onFeatureSelect={setClickedFeature}
-            onFeatureMessage={setFeatureMessage}
-          />
+        <section className={activeView === 'map' ? 'map-workspace' : 'monitoring-page'}>
+          {activeView === 'map' ? (
+            <MapViewer
+              key={mapKey}
+              layers={layers}
+              onFeatureSelect={setClickedFeature}
+              onFeatureMessage={setFeatureMessage}
+            />
+          ) : <MonitoringDashboard />}
         </section>
       </main>
 
@@ -255,6 +304,10 @@ export default function App() {
             onSelectAllDiscovered={handleSelectAllDiscovered}
             onDeselectAllDiscovered={handleDeselectAllDiscovered}
             onAddSelectedLayers={handleAddSelectedLayers}
+            savedConnections={savedConnections}
+            onSaveConnection={handleSaveConnection}
+            onLoadConnection={handleLoadConnection}
+            onDeleteConnection={handleDeleteConnection}
           />
           </section>
         </div>

@@ -7,6 +7,8 @@ import com.wmsreader.dto.WmsFeatureInfoRequest;
 import com.wmsreader.dto.WmsLayerCandidate;
 import com.wmsreader.model.WmsLayer;
 import com.wmsreader.service.WmsService;
+import com.wmsreader.service.WmsMonitoringService;
+import com.wmsreader.model.WmsMonitoring;
 import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
@@ -30,9 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class WmsController {
 
     private final WmsService wmsService;
+    private final WmsMonitoringService monitoringService;
 
-    public WmsController(WmsService wmsService) {
+    public WmsController(WmsService wmsService, WmsMonitoringService monitoringService) {
         this.wmsService = wmsService;
+        this.monitoringService = monitoringService;
     }
 
     @PostMapping("/wms/check")
@@ -64,6 +68,33 @@ public class WmsController {
         Map<String, Object> response = new HashMap<>();
         response.put("success", !data.isBlank());
         response.put("data", data);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/wms/monitoring")
+    public ResponseEntity<Map<String, Object>> getMonitoring() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", monitoringService.getAll());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/wms/monitoring/summary")
+    public ResponseEntity<Map<String, Object>> getMonitoringSummary() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", monitoringService.getSummary());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/wms/monitoring/refresh")
+    public ResponseEntity<Map<String, Object>> refreshMonitoring() {
+        List<WmsMonitoring> monitoring = monitoringService.refreshAll();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", monitoring.size() + " WMS selesai diperiksa.");
+        response.put("data", monitoring);
+        response.put("summary", monitoringService.getSummary());
         return ResponseEntity.ok(response);
     }
 

@@ -69,6 +69,22 @@ Request body:
 
 Menghapus layer dari database dan map.
 
+### GET /api/wms/monitoring
+
+Mengambil snapshot monitoring terakhir untuk setiap endpoint WMS yang terdaftar.
+
+### GET /api/wms/monitoring/summary
+
+Mengambil KPI monitoring: total, healthy, warning, down, rata-rata response time,
+dan waktu pemeriksaan terakhir.
+
+### POST /api/wms/monitoring/refresh
+
+Memeriksa semua endpoint WMS terdaftar dari backend menggunakan GetCapabilities,
+mengukur response time, menyimpan snapshot, lalu mengembalikan data monitoring dan summary.
+Request eksternal tidak dilakukan berulang oleh browser; dashboard hanya menjalankan
+pemeriksaan saat user menekan tombol refresh.
+
 ## Response conventions
 
 - success: boolean
