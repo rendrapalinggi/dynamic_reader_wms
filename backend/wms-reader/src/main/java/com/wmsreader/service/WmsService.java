@@ -6,10 +6,11 @@ import com.wmsreader.dto.WmsDiscoveryRequest;
 import com.wmsreader.dto.WmsFeatureInfoRequest;
 import com.wmsreader.dto.WmsLayerCandidate;
 import com.wmsreader.dto.WmsMetadata;
+import com.wmsreader.dto.WmsMonitoringProbe;
 import com.wmsreader.model.WmsLayer;
 import java.io.StringReader;
 import com.wmsreader.repository.WmsLayerRepository;
-import java.io.IOException;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -144,6 +145,62 @@ public class WmsService {
             log.warn("GetFeatureInfo gagal diakses: {}", url, e);
             throw new IllegalArgumentException("Data pada lokasi yang dipilih tidak dapat dibaca.");
         }
+    }
+
+    public WmsMonitoringProbe probeCapabilities(String wmsUrl) {
+        WmsMonitoringProbe probe = new WmsMonitoringProbe();
+        long startedAt = System.nanoTime();
+        try {
+            String capabilitiesUrl = appendCapabilitiesParameters(wmsUrl);
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(capabilitiesUrl))
+                .timeout(Duration.ofSeconds(12))
+                .GET()
+                .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            probe.setHttpStatus(response.statusCode());
+            probe.setResponseTimeMs(Duration.ofNanos(System.nanoTime() - startedAt).toMillis());
+
+            String body = response.body();
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                probe.setStatus("DOWN");
+                probe.setErrorMessage("HTTP " + response.statusCode());
+                return probe;
+            }
+            if (body == null || body.isBlank()
+                || !(body.contains("<WMS_Capabilities") || body.contains("<WMT_MS_Capabilities"))) {
+                probe.setStatus("DOWN");
+                probe.setErrorMessage("Response GetCapabilities tidak valid.");
+                return probe;
+            }
+
+            probe.setWmsVersion(extractCapabilitiesVersion(body));
+            probe.setLayerCount(countCapabilitiesLayers(body));
+            probe.setStatus(probe.getResponseTimeMs() > 2000 ? "WARNING" : "HEALTHY");
+            return probe;
+        } catch (Exception e) {
+            probe.setResponseTimeMs(Duration.ofNanos(System.nanoTime() - startedAt).toMillis());
+            probe.setStatus("DOWN");
+            probe.setErrorMessage(e.getClass().getSimpleName().equals("HttpTimeoutException")
+                ? "Timeout saat mengakses WMS."
+                : "GetCapabilities gagal diakses.");
+            log.warn("Monitoring WMS gagal: {}", wmsUrl, e);
+            return probe;
+        }
+    }
+
+    private String extractCapabilitiesVersion(String xml) {
+        var matcher = Pattern.compile("version\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']", Pattern.CASE_INSENSITIVE).matcher(xml);
+        return matcher.find() ? matcher.group(1) : "N/A";
+    }
+
+    private int countCapabilitiesLayers(String xml) {
+        var matcher = Pattern.compile("<Layer(?:\\s|>)", Pattern.CASE_INSENSITIVE).matcher(xml);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
     }
 
     @Transactional

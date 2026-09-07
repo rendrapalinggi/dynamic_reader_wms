@@ -9,7 +9,7 @@ React (Frontend)
 REST API (Spring Boot)
         |
         v
-WMS Service / Validation Layer
+WMS Service / Validation Layer / Monitoring Service
         |
         v
 GeoServer
@@ -23,6 +23,7 @@ PostgreSQL (WMS Layer Configuration)
 - Frontend dibuat dengan React untuk UI input, layer manager, dan map viewer.
 - Backend menyediakan REST API untuk validasi GeoServer, insert, update visibility, ambil daftar layer, dan hapus layer.
 - Service WMS memeriksa ketersediaan GeoServer, workspace, WMS, layer, dan metadata.
+- Monitoring service memakai jalur GetCapabilities dan HTTP client yang sama untuk menyimpan status, response time, versi, jumlah layer, dan error terakhir.
 - Database PostgreSQL menyimpan konfigurasi layer yang di input user.
 - Map viewer menggunakan OpenLayers untuk menampilkan layer WMS dinamis dari backend.
 
@@ -51,6 +52,10 @@ Setiap layer WMS menyimpan informasi berikut:
 - status
 - created_at
 - updated_at
+
+Data monitoring disimpan di tabel `wms_monitoring` sebagai snapshot terakhir per endpoint
+WMS. Pemeriksaan dijalankan manual dari dashboard melalui backend agar request eksternal
+tidak dilakukan berulang dari browser. Struktur ini siap dikembangkan menjadi scheduler.
 
 ## File penting
 

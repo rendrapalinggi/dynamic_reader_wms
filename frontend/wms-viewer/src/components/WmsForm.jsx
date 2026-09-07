@@ -14,7 +14,11 @@ export default function WmsForm({
   onToggleDiscoveredLayer,
   onSelectAllDiscovered,
   onDeselectAllDiscovered,
-  onAddSelectedLayers
+  onAddSelectedLayers,
+  savedConnections,
+  onSaveConnection,
+  onLoadConnection,
+  onDeleteConnection
 }) {
   const [search, setSearch] = useState('');
   const filteredLayers = discoveredLayers.filter((layer) => {
@@ -59,6 +63,26 @@ export default function WmsForm({
           placeholder="Masukkan nama layer"
         />
       </div>
+
+      <div className="connection-actions">
+        <button type="button" className="text-btn" onClick={onSaveConnection}>Simpan koneksi</button>
+        {savedConnections.length > 0 && <span>{savedConnections.length} tersimpan</span>}
+      </div>
+
+      {savedConnections.length > 0 && (
+        <div className="saved-connections">
+          <div className="saved-heading"><span className="form-section-label">SAVED CONNECTIONS</span><small>Pilih untuk mengisi form</small></div>
+          {savedConnections.map((connection) => (
+            <div className="saved-connection" key={connection.id}>
+              <button type="button" onClick={() => onLoadConnection(connection)}>
+                <strong>{connection.workspace}</strong>
+                <small>{connection.geoserverUrl}</small>
+              </button>
+              <button type="button" className="saved-delete" onClick={() => onDeleteConnection(connection.id)} aria-label={`Hapus koneksi ${connection.workspace}`}>x</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button className="primary-btn" onClick={onCheck} disabled={loading}>
         {loading ? 'Memeriksa...' : 'CEK WMS'}
